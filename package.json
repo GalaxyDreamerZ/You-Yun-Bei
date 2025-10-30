@@ -1,0 +1,43 @@
+{
+  "name": "nuxt-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "web:build": "nuxt build",
+    "web:dev": "nuxt dev",
+    "web:generate": "nuxt generate",
+    "web:preview": "nuxt preview",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "postinstall": "nuxt prepare",
+    "portable": "node scripts/portable.mjs"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "2.3.1",
+    "@element-plus/nuxt": "1.1.1",
+    "@tauri-apps/api": "2.3.0",
+    "@tauri-apps/plugin-dialog": "2.2.0",
+    "@tauri-apps/plugin-global-shortcut": "2.2.0",
+    "@tauri-apps/plugin-log": "2.3.1",
+    "@tauri-apps/plugin-window-state": "~2",
+    "@vueuse/core": "13.0.0",
+    "@vueuse/nuxt": "13.0.0",
+    "dayjs": "1.11.13",
+    "element-plus": "2.9.6",
+    "lodash-unified": "^1.0.3",
+    "nuxt": "3.19.0",
+    "uuid": "11.1.0",
+    "vue": "3.5.13",
+    "vue-i18n": "^11.1.2",
+    "vue-router": "4.5.0",
+    "vuedraggable": "4.1.0"
+  },
+  "devDependencies": {
+    "@actions/github": "6.0.0",
+    "@tauri-apps/cli": "2.3.1",
+    "@types/uuid": "10.0.0",
+    "adm-zip": "0.5.16",
+    "fs-extra": "11.3.0",
+    "nuxt-lodash": "2.5.3"
+  }
+}
