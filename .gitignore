@@ -6,6 +6,9 @@
 .cache
 dist
 
+# Rust/Cargo (workspace root)
+/target/
+
 # Node dependencies
 node_modules
 dist
@@ -52,3 +55,12 @@ auto-imports.d.ts
 .aider*
 .cursor*
 .windsurf*
+
+# Project-specific runtime/generated files (do not open source)
+GameSaveManager.config.json
+/database/
+RGSM_-portable.zip
+*.zip
+/plan/
+lajidaima.md
+/src-tauri/gen/
