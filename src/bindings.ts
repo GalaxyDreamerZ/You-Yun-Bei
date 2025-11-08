@@ -220,6 +220,106 @@ async chooseQuickActionSoundFile() : Promise<Result<string, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * 触发扫描流程的命令（最小实现）
+ * 
+ * - 输入：`ScanOptions` 控制扫描选项，`AppHandle` 用于事件发送
+ * - 输出：`ScanResult` 扫描结果（当前为最小实现，返回空集合）
+ * - 行为：按阶段发送两到三次 `ScanProgress` 事件，便于前端调试 UI 与绑定
+ */
+async scanGames(options: ScanOptions) : Promise<Result<ScanResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("scan_games", { options }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * 查询 PCGamingWiki 索引中的游戏信息（名称或别名匹配）
+ * 
+ * - 输入：`name` 为待查询的游戏名称或别名，`AppHandle` 用于解析资源路径
+ * - 输出：匹配到的 `GameInfo`，无匹配时返回 `None`
+ * - 错误：资源读取或解析失败返回错误信息字符串（已转换为友好可读）
+ */
+async pcgwQuery(name: string) : Promise<Result<GameInfo | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pcgw_query", { name }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * 完整查询 PCGamingWiki 索引（支持模糊、平台过滤与结果上限）
+ * 
+ * - 输入：`name` 查询关键字（名称或别名），`options` 查询选项
+ * - 行为：按以下优先级计算评分并排序：
+ * 1. 主名称完全匹配：score=1.0，matched_by="name"
+ * 2. 别名完全匹配：score=0.95，matched_by="alias"
+ * 3. 模糊匹配（包含）：name 包含则 score≈0.75~1.0，alias 包含则 score≈0.7~1.0，matched_by="fuzzy"
+ * - 过滤：若设置 `platform`，仅保留有保存规则包含该平台的条目
+ * - 限制：返回不超过 `limit` 个结果（默认 20）
+ */
+async pcgwSearch(name: string, options: PcgwQueryOptions) : Promise<Result<PcgwQueryItem[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pcgw_search", { name, options }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * 为已检测到的游戏生成 SaveUnit 列表（带设备映射）
+ * 
+ * - 输入：`game_info`（PCGW 索引中的游戏信息）、`install_path`（解析出的安装目录字符串）
+ * - 行为：调用平台实现的 `generate_save_units`，只返回存在的文件/文件夹并映射到当前设备
+ * - 输出：`SaveUnit` 列表，供前端“一键填充/添加”使用
+ */
+async generateSaveUnitsForGame(gameInfo: GameInfo, installPath: string) : Promise<Result<SaveUnit[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("generate_save_units_for_game", { gameInfo, installPath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * 刷新 PCGW 索引（返回版本与条目数量）
+ * 
+ * - 行为：首先尝试从远端拉取并缓存索引；失败则回退读取打包资源
+ * - 返回：索引版本与条目数量，便于前端显示状态
+ */
+async pcgwRefreshIndex() : Promise<Result<PcgwIndexMeta, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pcgw_refresh_index") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * 从本地文件导入 PCGW 索引（覆盖缓存并返回元信息）
+ */
+async pcgwImportIndexFromFile(filePath: string) : Promise<Result<PcgwIndexMeta, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pcgw_import_index_from_file", { filePath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * 从SQLite数据库导入 PCGW 索引（例如 Game-Save-Manager 的 database.db）
+ */
+async pcgwImportIndexFromSqlite(filePath: string) : Promise<Result<PcgwIndexMeta, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("pcgw_import_index_from_sqlite", { filePath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -228,10 +328,12 @@ async chooseQuickActionSoundFile() : Promise<Result<string, string>> {
 
 export const events = __makeEvents__<{
 ipcNotification: IpcNotification,
-quickActionCompleted: QuickActionCompleted
+quickActionCompleted: QuickActionCompleted,
+scanProgress: ScanProgress
 }>({
 ipcNotification: "ipc-notification",
-quickActionCompleted: "quick-action-completed"
+quickActionCompleted: "quick-action-completed",
+scanProgress: "scan-progress"
 })
 
 /** user-defined constants **/
@@ -280,6 +382,26 @@ export type Config = { version: string; backup_path: string; games: Game[]; sett
  * 设备ID到设备名称的映射
  */
 devices?: Partial<{ [key in string]: Device }> }
+/**
+ * 已检测到的游戏条目
+ */
+export type DetectedGame = { 
+/**
+ * 游戏基础信息
+ */
+info: GameInfo; 
+/**
+ * 解析出的安装路径（若无法解析则为 None）
+ */
+install_path: string | null; 
+/**
+ * 检测来源
+ */
+source: DetectionSource }
+/**
+ * 安装来源，用于标注检测到的依据
+ */
+export type DetectionSource = "Steam" | "Epic" | "Origin" | "Registry" | "CommonDir" | "Process" | "Manual"
 export type Device = { id: string; name: string }
 export type FavoriteTreeNode = { node_id: string; label: string; is_leaf: boolean; children: FavoriteTreeNode[] | null }
 /**
@@ -287,13 +409,101 @@ export type FavoriteTreeNode = { node_id: string; label: string; is_leaf: boolea
  */
 export type Game = { name: string; save_paths: SaveUnit[]; game_paths?: Partial<{ [key in string]: string }> }
 /**
+ * 游戏基础信息与路径规则集合
+ */
+export type GameInfo = { 
+/**
+ * 游戏显示名称
+ */
+name: string; 
+/**
+ * 可选的别名（匹配安装来源/进程名时使用）
+ */
+aliases: string[]; 
+/**
+ * PCGamingWiki 对应的条目 ID（用于外部索引）
+ */
+pcgw_id: string | null; 
+/**
+ * 安装路径匹配规则集合
+ */
+install_rules: InstallPathRule[]; 
+/**
+ * 存档路径匹配规则集合
+ */
+save_rules: SavePathRule[] }
+/**
  * A backup list info is a json file in a backup folder for a game.
  * It contains the name of the game,
  * and all backups' path
  */
 export type GameSnapshots = { name: string; backups: Snapshot[] }
+/**
+ * 安装路径匹配规则
+ */
+export type InstallPathRule = { 
+/**
+ * 规则标识符（便于调试与日志）
+ */
+id: string; 
+/**
+ * 规则简短描述
+ */
+description: string | null; 
+/**
+ * 通用的路径模式（支持变量，如 `<home>`, `<winAppData>` 等）
+ */
+patterns: string[]; 
+/**
+ * 可选的注册表键（Windows），用于提升匹配可靠度
+ */
+registry_keys: string[] | null }
 export type IpcNotification = { level: NotificationLevel; title: string; msg: string }
 export type NotificationLevel = "info" | "warning" | "error"
+/**
+ * PCGW 索引元信息（用于刷新与状态显示）
+ */
+export type PcgwIndexMeta = { 
+/**
+ * 索引版本号（若不可用则为空）
+ */
+version: string | null; 
+/**
+ * 游戏条目数量
+ */
+count: number }
+/**
+ * PCGW 查询结果项（包含评分）
+ */
+export type PcgwQueryItem = { 
+/**
+ * 命中的游戏信息
+ */
+info: GameInfo; 
+/**
+ * 匹配评分（0.0~1.0），用于排序显示
+ */
+score: number; 
+/**
+ * 命中依据（`name`/`alias`/`fuzzy`），便于前端标注
+ */
+matched_by: string }
+/**
+ * PCGW 查询选项
+ */
+export type PcgwQueryOptions = { 
+/**
+ * 是否启用模糊匹配（令包含与前后缀匹配生效）
+ */
+fuzzy: boolean; 
+/**
+ * 可选的平台过滤（例如 `windows`、`macos`、`linux`），为空则不筛选
+ */
+platform: string | null; 
+/**
+ * 返回条目上限，缺省为 20
+ */
+limit: number | null }
 export type QuickActionCompleted = { operation: QuickActionOperation; status: QuickActionStatus; trigger: QuickActionType; game_name: string | null }
 export type QuickActionHotkeys = { apply: string[]; backup: string[] }
 export type QuickActionOperation = "Backup" | "Apply"
@@ -309,6 +519,54 @@ export type QuickActionsSettings = { quick_action_game?: Game | null; hotkeys?: 
  */
 export type SaveListExpandBehavior = "always_open" | "always_closed" | "remember_last"
 /**
+ * 存档路径匹配结果
+ */
+export type SaveMatchResult = { 
+/**
+ * 对应的规则 ID
+ */
+rule_id: string; 
+/**
+ * 解析出的实际路径
+ */
+resolved_path: string; 
+/**
+ * 路径是否存在（快速校验）
+ */
+exists: boolean; 
+/**
+ * 可信度（综合规则与存在性校验）
+ */
+confidence: number }
+/**
+ * 存档路径匹配规则
+ */
+export type SavePathRule = { 
+/**
+ * 规则标识符（便于调试与日志）
+ */
+id: string; 
+/**
+ * 规则简短描述
+ */
+description: string | null; 
+/**
+ * 路径模板（支持变量与占位符）
+ */
+path_template: string; 
+/**
+ * 需要的前置条件（如必须存在安装目录）
+ */
+requires: string[] | null; 
+/**
+ * 支持的平台标识（如 `windows`, `macos`, `linux`）
+ */
+platforms: string[]; 
+/**
+ * 规则的可信度（0.0~1.0），用于结果排序
+ */
+confidence: number }
+/**
  * A save unit declares one of the files/folders
  * that should be backup for a game
  */
@@ -317,6 +575,78 @@ export type SaveUnit = { unit_type: SaveUnitType; paths?: Partial<{ [key in stri
  * A save unit should be a file or a folder
  */
 export type SaveUnitType = "File" | "Folder"
+/**
+ * 扫描选项
+ */
+export type ScanOptions = { 
+/**
+ * 平台标识（如 `windows`、`macos`、`linux`）
+ */
+platform: string; 
+/**
+ * 是否扫描 Steam 安装目录
+ */
+search_steam: boolean; 
+/**
+ * 是否扫描 Epic 安装目录
+ */
+search_epic: boolean; 
+/**
+ * 是否扫描 Origin/EA 安装目录
+ */
+search_origin: boolean; 
+/**
+ * 是否读取注册表提升检测（Windows）
+ */
+search_registry: boolean; 
+/**
+ * 是否扫描常见安装路径（如 `Program Files` 等）
+ */
+search_common_dirs: boolean; 
+/**
+ * 是否通过当前运行进程进行辅助匹配
+ */
+search_processes: boolean }
+/**
+ * 扫描进度事件（用于前端订阅显示）
+ */
+export type ScanProgress = ScanProgressEvent
+/**
+ * 扫描进度事件载荷（用于前端进度显示）
+ */
+export type ScanProgressEvent = { 
+/**
+ * 当前步骤名称（如 `index_load`, `detect_games`, `match_saves`）
+ */
+step: string; 
+/**
+ * 当前进度值
+ */
+current: number; 
+/**
+ * 总进度值
+ */
+total: number; 
+/**
+ * 可选的附加信息
+ */
+message: string | null }
+/**
+ * 完整扫描结果
+ */
+export type ScanResult = { 
+/**
+ * 检测到的游戏列表
+ */
+detected: DetectedGame[]; 
+/**
+ * 匹配到的存档路径结果（聚合）
+ */
+matches: SaveMatchResult[]; 
+/**
+ * 错误消息（若有）
+ */
+errors: string[] }
 export type Settings = { prompt_when_not_described?: boolean; extra_backup_when_apply?: boolean; show_edit_button?: boolean; prompt_when_auto_backup?: boolean; exit_to_tray?: boolean; cloud_settings?: CloudSettings; locale?: string; default_delete_before_apply?: boolean; default_expend_favorites_tree?: boolean; home_page?: string; log_to_file?: boolean; add_new_to_favorites?: boolean; save_list_expand_behavior?: SaveListExpandBehavior; save_list_last_expanded?: boolean }
 /**
  * A backup is a zip file that contains

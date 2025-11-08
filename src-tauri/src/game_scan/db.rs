@@ -34,13 +34,16 @@ struct PcgwIndex {
     games: Vec<GameInfo>,
 }
 
-/// 加载 PCGW 索引（写死为本地默认 SQLite 路径）
+/// 加载 PCGW 索引（固定为程序资源目录下的 SQLite 路径）
 ///
-/// - 输入：`_app` 应用句柄（当前不使用，仅保留签名兼容 IPC）
-/// - 行为：仅使用固定路径 `database/database.db`；不再支持从配置读取或任意路径；不再回退到缓存或打包 JSON 索引
+/// - 输入：`app` 应用句柄（用于解析程序资源目录）
+/// - 行为：使用 `AppHandle.path().resolve("database/database.db", BaseDirectory::Resource)`
 /// - 返回：成功返回 `GameInfo` 列表，失败返回错误
-pub async fn load_pcgw_index(_app: &AppHandle) -> Result<Vec<GameInfo>> {
-    let sqlite_path: PathBuf = PathBuf::from("database").join("database.db");
+pub async fn load_pcgw_index(app: &AppHandle) -> Result<Vec<GameInfo>> {
+    let sqlite_path: PathBuf = app
+        .path()
+        .resolve("database/database.db", BaseDirectory::Resource)
+        .context("Failed to resolve program resource path for database/database.db")?;
 
     if !sqlite_path.exists() {
         return Err(anyhow::anyhow!(format!(
@@ -55,12 +58,15 @@ pub async fn load_pcgw_index(_app: &AppHandle) -> Result<Vec<GameInfo>> {
     Ok(list)
 }
 
-/// 加载 PCGW 索引的元信息（版本与条目数量，固定使用本地 SQLite）
+/// 加载 PCGW 索引的元信息（版本与条目数量，固定使用程序资源目录下的 SQLite）
 ///
-/// - 输入：`_app` 应用句柄（当前不使用，仅保留签名兼容 IPC）
+/// - 输入：`app` 应用句柄（用于解析资源目录）
 /// - 输出：`PcgwIndexMeta`（版本固定为 "sqlite"，数量为条目数）
-pub async fn load_pcgw_index_meta(_app: &AppHandle) -> Result<PcgwIndexMeta> {
-    let sqlite_path: PathBuf = PathBuf::from("database").join("database.db");
+pub async fn load_pcgw_index_meta(app: &AppHandle) -> Result<PcgwIndexMeta> {
+    let sqlite_path: PathBuf = app
+        .path()
+        .resolve("database/database.db", BaseDirectory::Resource)
+        .context("Failed to resolve program resource path for database/database.db")?;
 
     let games = load_pcgw_index_from_sqlite_direct(&sqlite_path)
         .with_context(|| format!("Failed to load sqlite index at {}", sqlite_path.display()))?;
