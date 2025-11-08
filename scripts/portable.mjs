@@ -11,7 +11,8 @@ import { getOctokit, context } from "@actions/github";
  *
  * - 从 `src-tauri/target/release` 中收集可执行文件 `rgsm.exe`
  * - 将必须的资源文件打包到 `resources/database/database.db`
- * - 创建 `RGSM_<version>_x64-portable.zip`
+ * - 创建 `RGSM_<version>_x64-portable-YYYYMMDD-HHmmss.zip`
+ * - 生成后仅保留最近 5 个便携包（按修改时间），其余自动清理
  * - 如存在 GitHub 发布环境变量，则上传到对应 Release；否则跳过上传
  */
 async function resolvePortable() {
@@ -38,8 +39,9 @@ async function resolvePortable() {
 
   const require = createRequire(import.meta.url);
   const version = getVersionFromCargo() ?? "unknown";
+  const ts = formatTimestamp(new Date());
 
-  const zipFile = `RGSM_${version}_x64-portable.zip`;
+  const zipFile = `RGSM_${version}_x64-portable-${ts}.zip`;
   await fs.ensureDir(bundleDir);
   const zipOutPath = path.join(bundleDir, zipFile);
   zip.writeZip(zipOutPath);
@@ -66,6 +68,8 @@ async function resolvePortable() {
     console.log(
       "[INFO]: skip upload, missing GITHUB_TOKEN or RELEASE_ID; local portable build completed"
     );
+    // 执行清理策略：仅保留最近 5 个便携包
+    await enforceRetentionPolicy(bundleDir, 5);
     return;
   }
 
@@ -81,6 +85,9 @@ async function resolvePortable() {
     name: zipFile,
     data: zip.toBuffer(),
   });
+
+  // 上传后也执行清理策略
+  await enforceRetentionPolicy(bundleDir, 5);
 }
 
 /**
@@ -99,6 +106,51 @@ function getVersionFromCargo() {
   } catch (e) {
     console.warn("[WARN]: failed to read version from Cargo.toml", e?.message);
     return null;
+  }
+}
+
+/**
+ * 将日期格式化为 `YYYYMMDD-HHmmss`
+ *
+ * 用于便携包文件名，避免同版本重复构建被覆盖
+ */
+function formatTimestamp(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  const ss = pad(d.getSeconds());
+  return `${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
+}
+
+/**
+ * 保留最近 N 个便携包（按修改时间降序），其余删除
+ *
+ * - 只匹配 `RGSM_*_x64-portable*.zip`
+ * - 记录删除的文件，方便排查
+ */
+async function enforceRetentionPolicy(dir, keepCount = 5) {
+  try {
+    const items = await fs.readdir(dir);
+    const candidates = items
+      .filter((f) => /^RGSM_.+_x64-portable(-\d{8}-\d{6})?\.zip$/.test(f))
+      .map((f) => ({ name: f, path: path.join(dir, f) }));
+    const stats = await Promise.all(
+      candidates.map(async (c) => ({ ...c, stat: await fs.stat(c.path) }))
+    );
+    const sorted = stats.sort((a, b) => b.stat.mtimeMs - a.stat.mtimeMs);
+    const toDelete = sorted.slice(keepCount);
+    for (const item of toDelete) {
+      await fs.remove(item.path);
+      console.log("[INFO]: removed old portable:", item.name);
+    }
+    console.log(
+      `[INFO]: retention applied, kept ${Math.min(sorted.length, keepCount)} of ${sorted.length}`
+    );
+  } catch (e) {
+    console.warn("[WARN]: enforceRetentionPolicy failed:", e?.message);
   }
 }
 
