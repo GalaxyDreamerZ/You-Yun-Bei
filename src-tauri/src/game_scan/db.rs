@@ -8,7 +8,7 @@ use tauri::path::BaseDirectory;
 use tauri::Manager;
 use log::{info, warn};
 use rusqlite::Connection;
-use crate::config::get_config;
+// 注意：索引加载已固定使用默认 SQLite 路径，不再读取配置文件
 
 /// 远端 PCGW 索引候选地址（优先顺序）
 ///
@@ -34,23 +34,13 @@ struct PcgwIndex {
     games: Vec<GameInfo>,
 }
 
-/// 加载 PCGW 索引（仅从本地 SQLite 数据库读取）
+/// 加载 PCGW 索引（写死为本地默认 SQLite 路径）
 ///
-/// - 输入：`app` 应用句柄（用于读取配置 settings.pcgw_database_path）
-/// - 行为：优先使用配置路径；否则使用工作目录 `./database/database.db`；不再回退到缓存或打包 JSON 索引
+/// - 输入：`_app` 应用句柄（当前不使用，仅保留签名兼容 IPC）
+/// - 行为：仅使用固定路径 `database/database.db`；不再支持从配置读取或任意路径；不再回退到缓存或打包 JSON 索引
 /// - 返回：成功返回 `GameInfo` 列表，失败返回错误
-pub async fn load_pcgw_index(app: &AppHandle) -> Result<Vec<GameInfo>> {
-    let mut sqlite_path: PathBuf = PathBuf::from("database").join("database.db");
-    if let Ok(cfg) = get_config() {
-        if let Some(p) = cfg.settings.pcgw_database_path.clone() {
-            let mut pstr = p.trim().to_string();
-            // 兼容可能的前导斜杠（如“/e:/...”）
-            if pstr.starts_with('/') && pstr.len() > 3 && pstr.as_bytes()[2] == b':' {
-                pstr = pstr[1..].to_string();
-            }
-            sqlite_path = PathBuf::from(&pstr);
-        }
-    }
+pub async fn load_pcgw_index(_app: &AppHandle) -> Result<Vec<GameInfo>> {
+    let sqlite_path: PathBuf = PathBuf::from("database").join("database.db");
 
     if !sqlite_path.exists() {
         return Err(anyhow::anyhow!(format!(
@@ -65,21 +55,12 @@ pub async fn load_pcgw_index(app: &AppHandle) -> Result<Vec<GameInfo>> {
     Ok(list)
 }
 
-/// 加载 PCGW 索引的元信息（版本与条目数量，仅从本地 SQLite 统计）
+/// 加载 PCGW 索引的元信息（版本与条目数量，固定使用本地 SQLite）
 ///
-/// - 输入：`app` 应用句柄（用于读取配置 settings.pcgw_database_path）
+/// - 输入：`_app` 应用句柄（当前不使用，仅保留签名兼容 IPC）
 /// - 输出：`PcgwIndexMeta`（版本固定为 "sqlite"，数量为条目数）
-pub async fn load_pcgw_index_meta(app: &AppHandle) -> Result<PcgwIndexMeta> {
-    let mut sqlite_path: PathBuf = PathBuf::from("database").join("database.db");
-    if let Ok(cfg) = get_config() {
-        if let Some(p) = cfg.settings.pcgw_database_path.clone() {
-            let mut pstr = p.trim().to_string();
-            if pstr.starts_with('/') && pstr.len() > 3 && pstr.as_bytes()[2] == b':' {
-                pstr = pstr[1..].to_string();
-            }
-            sqlite_path = PathBuf::from(&pstr);
-        }
-    }
+pub async fn load_pcgw_index_meta(_app: &AppHandle) -> Result<PcgwIndexMeta> {
+    let sqlite_path: PathBuf = PathBuf::from("database").join("database.db");
 
     let games = load_pcgw_index_from_sqlite_direct(&sqlite_path)
         .with_context(|| format!("Failed to load sqlite index at {}", sqlite_path.display()))?;

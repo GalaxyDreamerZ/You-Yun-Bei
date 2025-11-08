@@ -585,6 +585,29 @@ const router_list = computed(() => {
                         <ElSwitch v-model="isDark" />
                         <span class="setting-label">{{ $t("settings.enable_dark_mode") }}</span>
                     </div>
+                    <div class="setting-box">
+                        <!-- 配置 PCGW 本地数据库路径，并提供文件选择入口 -->
+                        <el-input
+                            v-model="config.settings.pcgw_database_path"
+                            :placeholder="$t('settings.pcgw_db_path_placeholder')"
+                            style="max-width: 520px; margin-right: 8px;"
+                        />
+                        <el-button
+                            @click="async () => {
+                                try {
+                                    const sel = await commands.chooseSaveFile();
+                                    if (sel.status === 'ok') {
+                                        config.settings.pcgw_database_path = sel.data;
+                                        await saveConfig();
+                                        showSuccess({ message: $t('common.save_success') });
+                                    }
+                                } catch (e) {
+                                    showError({ message: $t('error.choose_sound_file_error') });
+                                }
+                            }"
+                        >{{ $t('settings.choose_db_file') }}</el-button>
+                        <span class="setting-label">{{ $t('settings.pcgw_db_path') }}</span>
+                    </div>
                 </el-tab-pane>
 
                 <!-- 备份设置 -->
