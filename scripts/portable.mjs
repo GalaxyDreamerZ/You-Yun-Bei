@@ -18,6 +18,7 @@ async function resolvePortable() {
   if (process.platform !== "win32") return;
 
   const releaseDir = "./src-tauri/target/release";
+  const bundleDir = path.join(releaseDir, "bundle");
 
   if (!(await fs.pathExists(releaseDir))) {
     throw new Error("could not found the release dir");
@@ -39,9 +40,23 @@ async function resolvePortable() {
   const version = getVersionFromCargo() ?? "unknown";
 
   const zipFile = `RGSM_${version}_x64-portable.zip`;
-  zip.writeZip(zipFile);
+  await fs.ensureDir(bundleDir);
+  const zipOutPath = path.join(bundleDir, zipFile);
+  zip.writeZip(zipOutPath);
 
   console.log("[INFO]: create portable zip successfully");
+
+  // 清理根目录下旧的便携包（避免重复产物）
+  const rootZip = path.join(".", zipFile);
+  if (await fs.pathExists(rootZip)) {
+    await fs.remove(rootZip);
+    console.log("[INFO]: removed old root zip:", rootZip);
+  }
+  const undefinedZip = path.join(".", "RGSM_undefined_x64-portable.zip");
+  if (await fs.pathExists(undefinedZip)) {
+    await fs.remove(undefinedZip);
+    console.log("[INFO]: removed undefined zip:", undefinedZip);
+  }
 
   // 若无上传凭据，则直接跳过上传，视为本地打包成功
   if (
