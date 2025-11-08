@@ -1,5 +1,5 @@
 use crate::cloud_sync::upload_game_snapshots;
-use crate::config::{get_config, set_config};
+use crate::config::{get_config, set_config, Config};
 use crate::preclude::*;
 
 use log::{error, info};
@@ -9,10 +9,34 @@ use tauri::AppHandle;
 
 use super::{Game, GameSnapshots};
 
+/// 对 Windows 路径组件进行安全化处理
+///
+/// - 规则：移除/替换非法字符 `< > : " / \ | ? *` 为下划线 `_`
+/// - 处理：去除结尾的空格与点；若结果为空则使用 `Game`
+/// - 保留：大小写与非 ASCII 字符不做额外转换
+pub fn sanitize_windows_path_component(name: &str) -> String {
+    let mut s: String = name
+        .chars()
+        .map(|c| match c {
+            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' => '_',
+            _ => c,
+        })
+        .collect();
+    // 去除结尾的空格与点
+    while s.ends_with(' ') || s.ends_with('.') { s.pop(); }
+    if s.trim().is_empty() { return String::from("Game"); }
+    s
+}
+
+/// 组合本地备份目录：`config.backup_path` + 安全化后的游戏名
+pub fn join_backup_dir(config: &Config, name: &str) -> PathBuf {
+    let safe = sanitize_windows_path_component(name);
+    PathBuf::from(&config.backup_path).join(safe)
+}
+
 async fn create_backup_folder(name: &str) -> Result<(), BackupError> {
     let config = get_config()?;
-
-    let backup_path = PathBuf::from(&config.backup_path).join(name);
+    let backup_path = join_backup_dir(&config, name);
     let info: GameSnapshots = if !backup_path.exists() {
         fs::create_dir_all(&backup_path)?;
         GameSnapshots {

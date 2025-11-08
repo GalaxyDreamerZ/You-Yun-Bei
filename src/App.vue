@@ -100,34 +100,63 @@ async function handleDeviceSetup(deviceName: string, importFromDeviceId?: string
   }
 }
 
+// 初始化：在 Tauri 环境下调用后端；在浏览器模式下使用默认配置
 try {
-  await refreshConfig();
-  i18n.global.locale.value = config.value.settings.locale! as any;
-  await navigateTo(config.value!.settings.home_page);
-  
-  // 在应用启动时检查设备设置
-  await checkDeviceSetup();
+  const isTauriEnv = typeof window !== 'undefined'
+    && (window as any).__TAURI__
+    && (window as any).__TAURI__.core
+    && typeof (window as any).__TAURI__.core.invoke === 'function'
+  const route = useRoute()
+  const atRoot = !route?.path || route.path === '/'
+  if (isTauriEnv) {
+    await refreshConfig();
+    i18n.global.locale.value = config.value.settings.locale! as any;
+    // 仅在当前处于根路径时跳转到主页，避免覆盖深链接
+    if (atRoot) {
+      await navigateTo(config.value!.settings.home_page);
+    }
+    // 在应用启动时检查设备设置
+    await checkDeviceSetup();
+  } else {
+    const { DEFAULT_CONFIG } = await import('./bindings')
+    // 使用默认配置初始化
+    config.value = DEFAULT_CONFIG as any
+    i18n.global.locale.value = config.value.settings.locale! as any;
+    // 仅在根路径时跳转到主页
+    if (atRoot) {
+      await navigateTo(config.value!.settings.home_page ?? "/");
+    }
+  }
 } catch (e) {
   showError({ message: $t("home.wrong_homepage") });
   navigateTo("/");
 }
 
 
-import { listen } from '@tauri-apps/api/event';
-listen('Notification', (event) => {
-  let ev = event.payload as any;
-  switch (ev.level.toLowerCase()) {
-    case "info":
-      showInfo({ message: ev.msg, title: ev.title });
-      break;
-    case "warning":
-      showWarning({ message: ev.msg, title: ev.title });
-      break;
-    case "error":
-      showError({ message: ev.msg, title: ev.title });
-      break;
+// 仅在 Tauri 环境下注册通知事件监听
+{
+  const isTauriEnv = typeof window !== 'undefined'
+    && (window as any).__TAURI__
+    && (window as any).__TAURI__.core
+    && typeof (window as any).__TAURI__.core.invoke === 'function'
+  if (isTauriEnv) {
+    const { listen } = await import('@tauri-apps/api/event')
+    listen('Notification', (event) => {
+      let ev = event.payload as any;
+      switch (ev.level.toLowerCase()) {
+        case "info":
+          showInfo({ message: ev.msg, title: ev.title });
+          break;
+        case "warning":
+          showWarning({ message: ev.msg, title: ev.title });
+          break;
+        case "error":
+          showError({ message: ev.msg, title: ev.title });
+          break;
+      }
+    })
   }
-})
+}
 
 // 下方代码由于 tauri-specta 的bug导致无法正常运行，因此使用上方方式替代
 // events.ipcNotification.listen((event) => {

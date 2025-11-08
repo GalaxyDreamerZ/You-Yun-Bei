@@ -115,6 +115,7 @@ onBeforeUnmount(() => {
     stopCarousel();
 });
 
+// 保持与现有路由大小写一致，避免 404
 function go_add_game() {
     navigateTo("/AddGame");
 }

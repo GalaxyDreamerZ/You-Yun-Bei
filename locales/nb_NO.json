@@ -1,1 +1,5 @@
-{}
+{
+  "scan": {
+    "platform_beta": "Platform scan is in beta; currently supported on Windows only"
+  }
+}

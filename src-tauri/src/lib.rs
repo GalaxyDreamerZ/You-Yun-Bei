@@ -19,6 +19,7 @@ mod cloud_sync;
 mod config;
 mod default_value;
 mod device;
+mod game_scan;
 mod ipc_handler;
 mod path_resolver;
 mod preclude;
@@ -82,10 +83,18 @@ pub fn run() -> anyhow::Result<()> {
             ipc_handler::toggle_quick_action_sound_preview,
             ipc_handler::stop_sound_playback,
             ipc_handler::choose_quick_action_sound_file,
+            game_scan::scan_games,
+            game_scan::pcgw_query,
+            game_scan::pcgw_search,
+            game_scan::generate_save_units_for_game,
+            game_scan::pcgw_refresh_index,
+            game_scan::pcgw_import_index_from_file,
+            game_scan::pcgw_import_index_from_sqlite,
         ])
         .events(tauri_specta::collect_events![
             ipc_handler::IpcNotification,
-            quick_actions::QuickActionCompleted
+            quick_actions::QuickActionCompleted,
+            game_scan::ScanProgress
         ])
         .constant("DEFAULT_CONFIG", config::Config::default());
 

@@ -7,7 +7,7 @@
     "web:dev": "nuxt dev",
     "web:generate": "nuxt generate",
     "web:preview": "nuxt preview",
-    "dev": "tauri dev",
+    "dev": "nuxt prepare && tauri dev",
     "build": "tauri build",
     "postinstall": "nuxt prepare",
     "portable": "node scripts/portable.mjs"

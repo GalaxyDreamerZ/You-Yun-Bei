@@ -11,7 +11,6 @@ use log::{debug, error, info, warn};
 use rust_i18n::t;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, Window};
 use tauri_plugin_dialog::DialogExt;
@@ -188,7 +187,7 @@ pub async fn open_backup_folder(game: Game) -> Result<bool, String> {
         error!(target:"rgsm::ipc", "Failed to get config: {:?}", e);
         e.to_string()
     })?;
-    let p = PathBuf::from(&config.backup_path).join(game.name);
+    let p = crate::backup::join_backup_dir(&config, &game.name);
     Ok(open::that(p).is_ok())
 }
 

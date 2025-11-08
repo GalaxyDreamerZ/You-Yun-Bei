@@ -1,4 +1,7 @@
 {
+    "scan": {
+        "platform_beta": "Platform scan is in beta; currently supported on Windows only"
+    },
     "settings": {
         "locale_name": "Français",
         "locale_changed": "Vous avez changé votre langue, qui est actuellement un modèle de pré-visualisation, avant d'entrer en vigueur de façon permanente",

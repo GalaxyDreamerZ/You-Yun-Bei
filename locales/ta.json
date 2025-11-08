@@ -1,4 +1,7 @@
 {
+    "scan": {
+        "platform_beta": "Platform scan is in beta; currently supported on Windows only"
+    },
     "settings": {
         "locale_name": "தமிழ்",
         "locale_changed": "நீங்கள் மொழியை மாற்றியுள்ளீர்கள், முன்னோட்ட முறை தற்போது உள்ளது.",

@@ -1,4 +1,7 @@
 {
+    "scan": {
+        "platform_beta": "Platform scan is in beta; currently supported on Windows only"
+    },
     "settings": {
         "locale_name": "українська",
         "locale_changed": "Ви змінили мову. Наразі вона перебуває в режимі попереднього перегляду та набуде чинності назавжди після збереження",

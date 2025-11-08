@@ -22,6 +22,8 @@ const min_width = ref(200);
 const max_width = ref(400);
 
 // TODO:抽离到新文件中，同时`Settings.vue`也要抽离
+// 路由采用 Nuxt 文件路由的 kebab-case 路径
+// 由于项目现有 Nuxt 版本生成的实际路径为大写开头（例如 "/AddGame"），此处保持与现状一致，避免 404。
 const links = computed(() => [
     { text: $t("sidebar.homepage"), link: "/", icon: HotWater },
     { text: $t("sidebar.add_game"), link: "/AddGame", icon: DocumentAdd },
@@ -322,6 +324,8 @@ onMounted(() => {
     border-bottom: 1px solid var(--el-border-color-lighter);
     gap: 10px;
     background-color: var(--el-bg-color-overlay);
+    /* 在搜索栏与下方菜单之间增加视觉间距，参考其他模块的8px */
+    margin-bottom: 8px;
 }
 
 .search-container {
