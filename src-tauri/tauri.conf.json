@@ -4,8 +4,8 @@
   "identifier": "com.game-save-manager",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "pnpm web:dev",
+    "devUrl": "http://localhost:3002",
+    "beforeDevCommand": "pnpm web:dev --port 3002 --host",
     "beforeBuildCommand": "pnpm web:generate"
   },
   "app": {
@@ -25,7 +25,8 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["msi", "nsis"],
+    
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

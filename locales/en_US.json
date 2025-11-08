@@ -1,4 +1,7 @@
 {
+  "scan": {
+    "platform_beta": "Platform scan is in beta; currently supported on Windows only"
+  },
   "settings": {
     "locale_name": "English",
     "locale_changed": "You have changed the language and are currently in preview mode. You need to save it before it can take effect permanently",
@@ -25,6 +28,9 @@
     "backup_all": "Backup all saves",
     "backup_all_hint": "This operation will back up all game saves, which may take a long time. Please enter yes to confirm",
     "backup_all_in_progress": "Backing up all games...",
+    "pcgw_db_path": "PCGW local database path",
+    "pcgw_db_path_placeholder": "e.g. E:/ai/codeing/trae/You-Yun-Bei/database/database.db",
+    "choose_db_file": "Choose DB file",
     "apply_all": "Apply all backups",
     "apply_all_hint": "This is a high-risk action that may take a long time. Are you sure you want to overwrite all game saves? Enter yes to confirm",
     "apply_all_in_progress": "Restoring every backup...",
@@ -228,6 +234,38 @@
     "settings": "Settings",
     "about": "About"
   },
+  "pcgw": {
+    "title": "PCGW Index Search",
+    "query_label": "Search by name or alias",
+    "query_placeholder": "Enter a game name or alias",
+    "query_action": "Search",
+    "query_ok": "Search succeeded",
+    "query_failed": "Search failed",
+    "query_empty": "Please enter a name to search",
+    "desktop_only_hint": "This feature is only available in the desktop app (Tauri)",
+    "refresh_action": "Refresh index info",
+    "refresh_ok": "Index info updated",
+    "refresh_failed": "Failed to refresh index info",
+    "index_version": "Index version",
+    "index_count": "Entry count",
+    "fuzzy_label": "Fuzzy match",
+    "platform_label": "Platform",
+    "platform_placeholder": "Select a platform",
+    "platform_all": "All",
+    "limit_label": "Limit",
+    "matched_by": "Matched by",
+    "score": "Score",
+    "aliases": "Aliases",
+    "save_rules": "Save rules",
+    "install_rules": "Install path rules",
+    "col_id": "Rule ID",
+    "col_desc": "Description",
+    "col_path": "Path template",
+    "col_platforms": "Platforms",
+    "col_confidence": "Confidence",
+    "col_patterns": "Patterns",
+    "sqlite_only_hint": "Index source: local SQLite only (database/database.db or the path set in Settings)"
+  },
   "save_location_drawer": {
     "drawer_title": "Modify configuration",
     "type": "Type",
@@ -388,5 +426,60 @@
     "import_from": "Import paths from other devices",
     "select_device": "Select Device",
     "import_success": "Paths imported successfully"
+  },
+  "pcgw": {
+    "title": "PCGamingWiki Index",
+    "query_label": "Name or alias",
+    "query_placeholder": "Enter name or alias",
+    "query_action": "Search",
+    "query_ok": "Search completed",
+    "query_failed": "Search failed",
+    "query_empty": "Please enter game name or alias",
+    "desktop_only_hint": "This feature is only available in desktop (Tauri) mode",
+    "aliases": "Aliases",
+    "save_rules": "Save path rules",
+    "install_rules": "Install path rules",
+    "col_id": "Rule ID",
+    "col_desc": "Description",
+    "col_path": "Path template",
+    "col_platforms": "Platforms",
+    "col_confidence": "Confidence",
+    "col_patterns": "Patterns",
+    "fuzzy_label": "Enable fuzzy",
+    "platform_label": "Platform filter",
+    "platform_placeholder": "Select platform",
+    "platform_all": "All platforms",
+    "limit_label": "Limit",
+    "matched_by": "Matched by",
+    "score": "Score",
+    "index_version": "Index version",
+    "index_count": "Entries",
+    "refresh_action": "Refresh index",
+    "refresh_ok": "Index info updated",
+    "refresh_failed": "Index refresh failed",
+    "import_action": "Import local",
+    "import_ok": "Index import successful",
+    "import_failed": "Index import failed",
+    "import_sqlite_action": "Import from database.db",
+    "import_sqlite_ok": "SQLite import successful",
+    "import_sqlite_failed": "SQLite import failed"
+  }
+  ,
+  "scan": {
+    "platform_beta": "Non-Windows platform scanning is in Beta; features are limited.",
+    "steps": {
+      "index_load": "Load index",
+      "detect_games": "Detect installed games",
+      "match_saves": "Match save paths",
+      "done": "Completed",
+      "epic_scanning": "Scanning Epic manifests",
+      "origin_scanning": "Scanning EA/Origin installed list",
+      "common_directories_scanning": "Scanning common game directories",
+      "origin_done": "Origin scan done",
+      "common_done": "Common directories scan done"
+    },
+    "platform": {
+      "beta": "Non-Windows platform scanning is in Beta; features are limited."
+    }
   }
 }
