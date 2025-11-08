@@ -6,7 +6,7 @@ use std::path::Path;
 use tauri::AppHandle;
 use tauri::path::BaseDirectory;
 use tauri::Manager;
-use log::{info, warn};
+use log::info;
 use rusqlite::Connection;
 // 注意：索引加载已固定使用默认 SQLite 路径，不再读取配置文件
 
